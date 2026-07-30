@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Via Láctea — Relógio Espacial</title>
+<link rel="icon" type="image/png" href="Hubble_App_Icon-removebg-preview.png">
+<link rel="apple-touch-icon" href="Hubble_App_Icon-removebg-preview.png">
 <meta name="description" content="A Via Láctea real, modelada em 50 mil estrelas, girando lentamente em tempo real, com o horário e a data atuais no centro da tela.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,7 +152,7 @@
     transform: translate(-50%, -50%);
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.6s ease;
+    transition: opacity 2.8s ease;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -176,6 +178,7 @@
     .hud{ transition: opacity 0.4s ease; }
     .site-title{ transition: opacity 0.4s ease; }
     .legend{ transition: opacity 0.4s ease; }
+    .earth-label{ transition: opacity 0.4s ease; }
   }
 
   @media (max-width: 560px){
@@ -280,7 +283,11 @@
     fadeInMs: 2600,
     minDistance: 130,
     maxDistance: 1500,
-    starSize: 2.35
+    starSize: 2.35,
+    // Ao se aproximar da galáxia (zoom), a interface some; só volta (com fade in)
+    // quando o usuário se afasta de novo, perto da distância inicial da câmera.
+    hideInfoDistance: 300,
+    showInfoDistance: 620
   };
 
   /* ------------------------------ DOM refs -------------------------------- */
@@ -393,31 +400,136 @@
   earthMarker.add(earthCore);
   galaxyGroup.add(earthMarker);
 
-  /* --------------------------- Campo de estrelas de fundo --------------------------- */
-  function buildBackground(){
-    const n = 2600;
+  /* --------------------------- Campo de estrelas de fundo (fixas) --------------------------- */
+  function buildBackground(n, rMin, rMax, size, opacity, briMin, briMax){
     const pos = new Float32Array(n * 3);
     const col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++){
-      const r = lerp(900, 2400, Math.random());
+      const r = lerp(rMin, rMax, Math.random());
       const theta = Math.random() * TAU;
       const phi = Math.acos(2 * Math.random() - 1);
       pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
       pos[i*3+1] = r * Math.cos(phi);
       pos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
-      const b = lerp(0.35, 0.95, Math.random());
+      const b = lerp(briMin, briMax, Math.random());
       col[i*3] = b; col[i*3+1] = b; col[i*3+2] = clamp(b + 0.05, 0, 1);
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const mat = new THREE.PointsMaterial({
-      size: 1.6, map: starTexture, vertexColors: true, transparent: true,
-      opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+      size, map: starTexture, vertexColors: true, transparent: true,
+      opacity, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
     });
     return new THREE.Points(geo, mat);
   }
-  scene.add(buildBackground());
+  // Camada principal, bem mais densa que antes
+  scene.add(buildBackground(4600, 900, 2400, 1.6, 0.8, 0.35, 0.95));
+  // Camada distante, estrelas menores e mais numerosas (profundidade)
+  scene.add(buildBackground(2200, 1500, 3300, 1.05, 0.55, 0.2, 0.6));
+  // Estrelas fixas maiores, em primeiro plano — pontos firmes, sem cintilar
+  scene.add(buildBackground(280, 480, 950, 2.7, 0.95, 0.65, 1.0));
+
+  /* --------------------------- Estrelas explodindo (supernovas) --------------------------- */
+  const MAX_BURSTS = 5;
+  const PARTICLES_PER_BURST = 34;
+  const burstCount = MAX_BURSTS * PARTICLES_PER_BURST;
+  const burstPos = new Float32Array(burstCount * 3);
+  const burstCol = new Float32Array(burstCount * 3);
+  const burstGeo = new THREE.BufferGeometry();
+  burstGeo.setAttribute('position', new THREE.BufferAttribute(burstPos, 3));
+  burstGeo.setAttribute('color', new THREE.BufferAttribute(burstCol, 3));
+  const burstMat = new THREE.PointsMaterial({
+    size: 3.2, map: starTexture, vertexColors: true, transparent: true,
+    opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+  });
+  scene.add(new THREE.Points(burstGeo, burstMat));
+
+  // Um pequeno flash central acompanha cada explosão
+  const burstFlashSprites = [];
+  for (let s = 0; s < MAX_BURSTS; s++){
+    const spr = makeGlowSprite('#ffffff', 1);
+    spr.material.opacity = 0;
+    scene.add(spr);
+    burstFlashSprites.push(spr);
+  }
+
+  const burstSlots = new Array(MAX_BURSTS).fill(null);
+  let nextBurstAt = performance.now() + lerp(1200, 3200, Math.random());
+
+  function triggerBurst(now){
+    const idx = burstSlots.findIndex(s => s === null);
+    if (idx === -1) return;
+    const r = lerp(700, 1900, Math.random());
+    const theta = Math.random() * TAU;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const center = new THREE.Vector3(
+      r * Math.sin(phi) * Math.cos(theta),
+      r * Math.cos(phi),
+      r * Math.sin(phi) * Math.sin(theta)
+    );
+    const dirs = new Float32Array(PARTICLES_PER_BURST * 3);
+    for (let i = 0; i < PARTICLES_PER_BURST; i++){
+      const dt = Math.random() * TAU;
+      const dp = Math.acos(2 * Math.random() - 1);
+      dirs[i*3]   = Math.sin(dp) * Math.cos(dt);
+      dirs[i*3+1] = Math.cos(dp);
+      dirs[i*3+2] = Math.sin(dp) * Math.sin(dt);
+    }
+    const warm = Math.random() > 0.5;
+    const baseColor = warm ? [1.0, 0.82, 0.55] : [0.65, 0.82, 1.0];
+    burstSlots[idx] = {
+      start: now,
+      duration: lerp(1300, 2200, Math.random()),
+      center, dirs, baseColor,
+      maxRadius: lerp(35, 70, Math.random())
+    };
+  }
+
+  function updateBursts(now){
+    for (let s = 0; s < MAX_BURSTS; s++){
+      const b = burstSlots[s];
+      const base = s * PARTICLES_PER_BURST;
+      const flashSprite = burstFlashSprites[s];
+      if (!b){
+        for (let i = 0; i < PARTICLES_PER_BURST; i++){
+          const k = (base + i) * 3;
+          burstCol[k] = burstCol[k+1] = burstCol[k+2] = 0;
+        }
+        flashSprite.material.opacity = 0;
+        continue;
+      }
+      const t = (now - b.start) / b.duration;
+      if (t >= 1){
+        burstSlots[s] = null;
+        for (let i = 0; i < PARTICLES_PER_BURST; i++){
+          const k = (base + i) * 3;
+          burstCol[k] = burstCol[k+1] = burstCol[k+2] = 0;
+        }
+        flashSprite.material.opacity = 0;
+        continue;
+      }
+      const expand = easeOutCubic(clamp(t / 0.4, 0, 1));
+      const fade = 1 - easeInOutCubic(t);
+      const radius = expand * b.maxRadius;
+      for (let i = 0; i < PARTICLES_PER_BURST; i++){
+        const k = (base + i) * 3;
+        burstPos[k]   = b.center.x + b.dirs[i*3]   * radius;
+        burstPos[k+1] = b.center.y + b.dirs[i*3+1] * radius;
+        burstPos[k+2] = b.center.z + b.dirs[i*3+2] * radius;
+        burstCol[k]   = b.baseColor[0] * fade;
+        burstCol[k+1] = b.baseColor[1] * fade;
+        burstCol[k+2] = b.baseColor[2] * fade;
+      }
+      const flashT = clamp(t / 0.22, 0, 1);
+      flashSprite.position.copy(b.center);
+      const flashScale = lerp(4, 46, easeOutCubic(flashT));
+      flashSprite.scale.set(flashScale, flashScale, 1);
+      flashSprite.material.opacity = (1 - easeInOutCubic(clamp(t / 0.55, 0, 1))) * flashT;
+    }
+    burstGeo.attributes.position.needsUpdate = true;
+    burstGeo.attributes.color.needsUpdate = true;
+  }
 
   /* ------------------------------ Relógio / data (tempo real) -------------------------------- */
   function updateClock(){
@@ -436,12 +548,22 @@
   const startTime = performance.now();
   const tmpVec = new THREE.Vector3();
 
+  let infoRevealed = false;  // já apareceu pela primeira vez?
+  let infoVisible = false;   // estado atual (some/aparece ao aproximar da galáxia)
+
+  function setInfoVisible(v){
+    if (v === infoVisible) return;
+    infoVisible = v;
+    hud.classList.toggle('visible', v);
+    siteTitle.classList.toggle('visible', v);
+    legend.classList.toggle('visible', v);
+    earthLabel.classList.toggle('visible', v);
+  }
+
   function frame(now){
-    if (!hud.classList.contains('visible') && (now - startTime > CONFIG.fadeInMs * 0.4)){
-      hud.classList.add('visible');
-      earthLabel.classList.add('visible');
-      siteTitle.classList.add('visible');
-      legend.classList.add('visible');
+    if (!infoRevealed && (now - startTime > CONFIG.fadeInMs * 0.4)){
+      infoRevealed = true;
+      setInfoVisible(true);
       galaxyCanvas.classList.add('interactive');
     }
 
@@ -450,6 +572,24 @@
     galaxyGroup.rotation.y = rot;
 
     controls.update();
+
+    // Ao aproximar da galáxia (zoom), a interface some; ao voltar perto da
+    // tela inicial, ela reaparece com fade in.
+    if (infoRevealed){
+      const dist = camera.position.distanceTo(controls.target);
+      if (infoVisible && dist < CONFIG.hideInfoDistance){
+        setInfoVisible(false);
+      } else if (!infoVisible && dist > CONFIG.showInfoDistance){
+        setInfoVisible(true);
+      }
+    }
+
+    // Dispara explosões estelares de fundo, de tempos em tempos
+    if (now > nextBurstAt){
+      triggerBurst(now);
+      nextBurstAt = now + lerp(2200, 5200, Math.random());
+    }
+    updateBursts(now);
 
     // Projeta a posição da Terra para a tela e posiciona o marcador discreto
     earthMarker.getWorldPosition(tmpVec);
