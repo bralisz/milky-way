@@ -704,7 +704,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
   // Após LEFT_INFO_IDLE_MS, o título e a legenda do canto esquerdo também somem.
   // Ambos voltam assim que houver qualquer atividade.
   const CURSOR_IDLE_MS = 3000;
-  const LEFT_INFO_IDLE_MS = 30000;
+  const LEFT_INFO_IDLE_MS = 10000;
 
   let lastActivityTime = performance.now();
   let cursorHidden = false;
