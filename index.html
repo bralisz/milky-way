@@ -55,7 +55,7 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     background-size: 280px 280px;
   }
-  /* Rótulo fixo no canto superior esquerdo */
+  /* Rótulo fixo no canto superior esquerdo — agora também é um link */
   .site-title{
     position: fixed;
     top: max(30px, env(safe-area-inset-top));
@@ -67,12 +67,21 @@
     letter-spacing: 0.35em;
     text-transform: uppercase;
     color: rgba(255,255,255,0.72);
+    text-decoration: none;
     opacity: 0;
-    transition: opacity 2.8s ease;
+    transition: opacity 2.8s ease, color 0.3s ease;
     pointer-events: none;
     white-space: nowrap;
   }
-  .site-title.visible{ opacity: 1; }
+  .site-title.visible{
+    opacity: 1;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .site-title.visible:hover,
+  .site-title.visible:focus-visible{
+    color: rgba(255,255,255,1);
+  }
 
   /* Relógio + data, alinhados ao canto superior direito */
   .hud{
@@ -201,22 +210,109 @@ body {
   }
 
   @media (max-width: 560px){
-    .legend{ max-width: 68vw; }
+    .site-title{
+      top: max(18px, env(safe-area-inset-top));
+      left: max(18px, env(safe-area-inset-left));
+      font-size: 10px;
+      letter-spacing: 0.26em;
+    }
+    .hud{
+      top: max(18px, env(safe-area-inset-top));
+      right: max(18px, env(safe-area-inset-right));
+      max-width: 62vw;
+    }
+    .clock{ font-size: clamp(24px, 9.5vw, 46px); }
+    .date{
+      margin-top: 5px;
+      font-size: clamp(9px, 2.6vw, 11px);
+      letter-spacing: 0.14em;
+    }
+    .legend{
+      bottom: max(18px, env(safe-area-inset-bottom));
+      left: max(18px, env(safe-area-inset-left));
+      max-width: 72vw;
+      gap: 8px;
+    }
+    .legend-dot{ width: 7px; height: 7px; margin-top: 3px; }
+    .legend-text{ font-size: 11px; line-height: 1.45; }
+  }
+
+  @media (max-width: 380px){
+    .site-title{ font-size: 9px; letter-spacing: 0.2em; }
+    .clock{ font-size: clamp(20px, 10vw, 34px); }
+    .hud{ max-width: 58vw; }
+  }
+
+  /* Celulares em paisagem: menos altura disponível, então reduzimos
+     margens verticais e o tamanho do relógio para evitar sobreposição. */
+  @media (max-height: 430px) and (orientation: landscape){
+    .site-title{ top: max(10px, env(safe-area-inset-top)); }
+    .hud{ top: max(10px, env(safe-area-inset-top)); }
+    .clock{ font-size: clamp(18px, 6vw, 30px); }
+    .date{ margin-top: 3px; font-size: 9px; }
+    .legend{
+      bottom: max(10px, env(safe-area-inset-bottom));
+      max-width: 46vw;
+    }
+    .legend-text{ font-size: 10px; line-height: 1.35; }
   }
 </style>
 
   <script>
+    /* ---------------------------------------------------------------------
+       Internacionalização automática: os textos da interface se adaptam
+       ao idioma configurado no dispositivo da pessoa (navigator.language).
+       Adicione novos idiomas simplesmente incluindo uma nova chave em
+       TRANSLATIONS abaixo. */
     (() => {
-      const language = (navigator.language || navigator.userLanguage || 'pt-BR').toLowerCase();
-      const isEnglish = language.startsWith('en');
-      document.title = isEnglish ? 'Milky Way Galaxy' : 'Galáxia Via Láctea';
+      const TRANSLATIONS = {
+        pt: {
+          title: 'Galáxia Via Láctea',
+          siteTitle: 'Galáxia Via Láctea',
+          legendText: 'A luz azul indica a posição atual da Terra na Via Láctea.',
+          months: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+          dateFormat: (d, m, y) => `${d} de ${m} de ${y}`
+        },
+        en: {
+          title: 'Milky Way Galaxy',
+          siteTitle: 'Milky Way Galaxy',
+          legendText: 'The blue light marks the current position of Earth in the Milky Way.',
+          months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+          dateFormat: (d, m, y) => `${m} ${d}, ${y}`
+        },
+        es: {
+          title: 'Galaxia Vía Láctea',
+          siteTitle: 'Galaxia Vía Láctea',
+          legendText: 'La luz azul indica la posición actual de la Tierra en la Vía Láctea.',
+          months: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+          dateFormat: (d, m, y) => `${d} de ${m} de ${y}`
+        },
+        fr: {
+          title: 'Galaxie Voie Lactée',
+          siteTitle: 'Galaxie Voie Lactée',
+          legendText: 'La lumière bleue indique la position actuelle de la Terre dans la Voie Lactée.',
+          months: ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+          dateFormat: (d, m, y) => `${d} ${m} ${y}`
+        },
+        de: {
+          title: 'Milchstraße',
+          siteTitle: 'Milchstraße',
+          legendText: 'Das blaue Licht zeigt die aktuelle Position der Erde in der Milchstraße.',
+          months: ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
+          dateFormat: (d, m, y) => `${d}. ${m} ${y}`
+        }
+      };
+
+      const rawLang = (navigator.language || navigator.userLanguage || 'pt-BR').toLowerCase();
+      const lang = rawLang.split('-')[0];
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+      window.I18N = dict;
+      window.I18N_LANG = TRANSLATIONS[lang] ? lang : 'en';
+      document.title = dict.title;
+      document.documentElement.lang = rawLang;
     })();
   </script>
-
-
-<script>
-(function(){const l=(navigator.language||'en').toLowerCase().split('-')[0];document.documentElement.lang=l;})();
-</script>
 </head>
 <body>
 
@@ -224,7 +320,7 @@ body {
   <div class="vignette"></div>
   <div class="grain"></div>
 
-  <div class="site-title" id="siteTitle">Galáxia Via Láctea</div>
+  <a class="site-title" id="siteTitle" href="https://bralis.site" target="_blank" rel="noopener noreferrer">Galáxia Via Láctea</a>
 
   <div class="hud" id="hud">
     <div class="clock" id="clock">00:00:00</div>
@@ -233,7 +329,7 @@ body {
 
   <div class="legend" id="legend">
     <span class="legend-dot"></span>
-    <span class="legend-text">A luz azul indica a posição atual da Terra na Via Láctea.</span>
+    <span class="legend-text" id="legendText">A luz azul indica a posição atual da Terra na Via Láctea.</span>
   </div>
 
   <div class="earth-label" id="earthLabel"><span class="ring"></span></div>
@@ -330,6 +426,18 @@ body {
   const earthLabel = document.getElementById('earthLabel');
   const siteTitle = document.getElementById('siteTitle');
   const legend = document.getElementById('legend');
+  const legendText = document.getElementById('legendText');
+
+  /* Aplica os textos traduzidos (definidos no <head>, com base no idioma
+     do dispositivo) aos elementos da interface. */
+  const T = window.I18N || {
+    siteTitle: 'Galáxia Via Láctea',
+    legendText: 'A luz azul indica a posição atual da Terra na Via Láctea.',
+    months: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+    dateFormat: (d, m, y) => `${d} de ${m} de ${y}`
+  };
+  siteTitle.textContent = T.siteTitle;
+  legendText.textContent = T.legendText;
 
   /* ------------------------------ Three.js setup -------------------------------- */
   const renderer = new THREE.WebGLRenderer({ canvas: galaxyCanvas, antialias: true, alpha: false });
@@ -570,8 +678,7 @@ body {
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     clockEl.textContent = `${hh}:${mm}:${ss}`;
-    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    dateEl.textContent = `${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()}`;
+    dateEl.textContent = T.dateFormat(now.getDate(), T.months[now.getMonth()], now.getFullYear());
   }
   updateClock();
   setInterval(updateClock, 1000);
