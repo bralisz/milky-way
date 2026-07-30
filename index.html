@@ -202,6 +202,15 @@ body {
   cursor: url("pointer_grabbing.cur"), grabbing;
 }
 
+/* Esconde o cursor do mouse após um período de inatividade — volta a
+   aparecer assim que o mouse se mexer (ou houver toque/tecla). */
+html.cursor-hidden,
+html.cursor-hidden *,
+html.cursor-hidden #galaxy-canvas.interactive,
+html.cursor-hidden #galaxy-canvas.interactive:active {
+  cursor: none !important;
+}
+
   @media (prefers-reduced-motion: reduce){
     .hud{ transition: opacity 0.4s ease; }
     .site-title{ transition: opacity 0.4s ease; }
@@ -690,13 +699,43 @@ body {
   let infoRevealed = false;  // já apareceu pela primeira vez?
   let infoVisible = false;   // estado atual (some/aparece ao aproximar da galáxia)
 
+  /* ------------------------- Inatividade do mouse/teclado ------------------------- */
+  // Após CURSOR_IDLE_MS sem qualquer movimento/toque/tecla, o cursor some.
+  // Após LEFT_INFO_IDLE_MS, o título e a legenda do canto esquerdo também somem.
+  // Ambos voltam assim que houver qualquer atividade.
+  const CURSOR_IDLE_MS = 3000;
+  const LEFT_INFO_IDLE_MS = 30000;
+
+  let lastActivityTime = performance.now();
+  let cursorHidden = false;
+  let leftInfoIdle = false;
+
+  function updateLeftInfoVisibility(){
+    const show = infoVisible && !leftInfoIdle;
+    siteTitle.classList.toggle('visible', show);
+    legend.classList.toggle('visible', show);
+  }
+
+  function registerActivity(){
+    lastActivityTime = performance.now();
+    if (cursorHidden){
+      cursorHidden = false;
+      document.documentElement.classList.remove('cursor-hidden');
+    }
+    if (leftInfoIdle){
+      leftInfoIdle = false;
+      updateLeftInfoVisibility();
+    }
+  }
+  ['mousemove', 'mousedown', 'wheel', 'touchstart', 'touchmove', 'keydown']
+    .forEach(evt => window.addEventListener(evt, registerActivity, { passive: true }));
+
   function setInfoVisible(v){
     if (v === infoVisible) return;
     infoVisible = v;
     hud.classList.toggle('visible', v);
-    siteTitle.classList.toggle('visible', v);
-    legend.classList.toggle('visible', v);
     earthLabel.classList.toggle('visible', v);
+    updateLeftInfoVisibility();
   }
 
   function frame(now){
@@ -721,6 +760,18 @@ body {
       } else if (!infoVisible && dist > CONFIG.showInfoDistance){
         setInfoVisible(true);
       }
+    }
+
+    // Esconde o cursor e, depois, as infos do canto esquerdo, conforme o
+    // tempo sem atividade do mouse/teclado/toque vai passando.
+    const idleFor = now - lastActivityTime;
+    if (!cursorHidden && idleFor > CURSOR_IDLE_MS){
+      cursorHidden = true;
+      document.documentElement.classList.add('cursor-hidden');
+    }
+    if (!leftInfoIdle && idleFor > LEFT_INFO_IDLE_MS){
+      leftInfoIdle = true;
+      updateLeftInfoVisibility();
     }
 
     // Dispara explosões estelares de fundo, de tempos em tempos
