@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Via Láctea — Relógio Espacial</title>
+<title>Galáxia Via Láctea</title>
+  <link rel="icon" type="image/png" href="Hubble_App_Icon-removebg-preview.png">
+  <link rel="apple-touch-icon" href="Hubble_App_Icon-removebg-preview.png">
 <meta name="description" content="A Via Láctea real, modelada em 50 mil estrelas, girando lentamente em tempo real, com o horário e a data atuais no centro da tela.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -183,6 +185,15 @@
     .legend{ max-width: 68vw; }
   }
 </style>
+
+  <script>
+    (() => {
+      const language = (navigator.language || navigator.userLanguage || 'pt-BR').toLowerCase();
+      const isEnglish = language.startsWith('en');
+      document.title = isEnglish ? 'Milky Way Galaxy' : 'Galáxia Via Láctea';
+    })();
+  </script>
+
 </head>
 <body>
 
