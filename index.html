@@ -172,8 +172,26 @@
     0%, 100% { transform: scale(0.85); opacity: 0.6; }
     50% { transform: scale(1.25); opacity: 1; }
   }
-  #galaxy-canvas.interactive{ cursor: grab; }
-  #galaxy-canvas.interactive:active{ cursor: grabbing; }
+/* Cursor padrão do site */
+html,
+body {
+  cursor: url("pointer_arrow.cur"), auto;
+}
+
+/* Mantém o cursor personalizado em todos os elementos */
+* {
+  cursor: inherit;
+}
+
+/* Cursor ao passar sobre a galáxia */
+#galaxy-canvas.interactive {
+  cursor: url("pointer_grab.cur"), grab;
+}
+
+/* Cursor ao arrastar a galáxia */
+#galaxy-canvas.interactive:active {
+  cursor: url("pointer_grabbing.cur"), grabbing;
+}
 
   @media (prefers-reduced-motion: reduce){
     .hud{ transition: opacity 0.4s ease; }
