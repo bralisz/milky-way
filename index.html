@@ -265,6 +265,192 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     }
     .legend-text{ font-size: 10px; line-height: 1.35; }
   }
+
+  /* ---------------------------------------------------------------------
+     Botões "glass" estilo iOS — canto inferior direito abre o painel de
+     informações, canto inferior esquerdo (dentro do painel) volta para a
+     visão da galáxia.
+     ------------------------------------------------------------------- */
+  .glass-btn{
+    position: fixed;
+    bottom: max(30px, env(safe-area-inset-bottom));
+    z-index: 40;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -6px 14px rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: opacity 0.6s ease, transform 0.25s ease, background 0.25s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .glass-btn.visible{ opacity: 1; pointer-events: auto; }
+  .glass-btn:hover{ background: rgba(255,255,255,0.14); transform: scale(1.06); }
+  .glass-btn:active{ transform: scale(0.94); }
+  .glass-btn svg{ width: 18px; height: 18px; display: block; }
+  #btnOpenWidgets{
+    right: max(26px, env(safe-area-inset-right));
+    width: 30px;
+    height: 30px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+  #btnOpenWidgets svg{ width: 11px; height: 11px; }
+  #btnOpenWidgets.visible{ opacity: 0.45; }
+  #btnOpenWidgets.visible:hover{ opacity: 1; background: rgba(255,255,255,0.10); transform: scale(1.06); }
+  #btnCloseWidgets{ left: max(26px, env(safe-area-inset-left)); }
+
+  /* Painel de widgets — fundo totalmente preto com cards em glassmorphism */
+  .widgets-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: #000000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .widgets-overlay.visible{ opacity: 1; pointer-events: auto; }
+  .widgets-inner{
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: max(70px, env(safe-area-inset-top) + 40px) max(24px, env(safe-area-inset-right) + 10px) 110px max(24px, env(safe-area-inset-left) + 10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .widgets-title{
+    font-family: 'Sora', sans-serif;
+    font-weight: 200;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-size: clamp(11px, 1.6vw, 13px);
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 26px;
+  }
+  .widgets-grid{
+    width: 100%;
+    max-width: 760px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 640px){
+    .widgets-grid{ grid-template-columns: 1fr; }
+  }
+  .glass-card{
+    grid-column: span 1;
+    background: rgba(255,255,255,0.06);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 22px;
+    padding: 20px 22px;
+    box-shadow:
+      0 10px 30px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.14);
+    color: #fff;
+    font-family: 'Sora', sans-serif;
+  }
+  .glass-card.wide{ grid-column: 1 / -1; }
+  .glass-card .card-label{
+    font-weight: 200;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 8px;
+  }
+  .glass-card .card-value{
+    font-weight: 300;
+    font-size: clamp(18px, 3vw, 24px);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+  .glass-card .card-sub{
+    margin-top: 4px;
+    font-weight: 200;
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+  }
+  .comp-bar-row{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-weight: 200;
+    font-size: 13px;
+  }
+  .comp-bar-row:first-of-type{ margin-top: 14px; }
+  .comp-bar-label{ width: 62px; flex: none; color: rgba(255,255,255,0.7); }
+  .comp-bar-track{
+    flex: 1;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.10);
+    overflow: hidden;
+  }
+  .comp-bar-fill{
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(150,195,255,0.9), rgba(255,255,255,0.85));
+  }
+  /* Cores por categoria — refletem a natureza de cada componente */
+  .comp-bar-fill.is-stars{
+    background: linear-gradient(90deg, #ffb84d, #fff3d6);
+    box-shadow: 0 0 10px rgba(255,180,80,0.5);
+  }
+  .comp-bar-fill.is-gas{
+    background: linear-gradient(90deg, #4fa3ff, #a8dcff);
+    box-shadow: 0 0 10px rgba(79,163,255,0.5);
+  }
+  .comp-bar-fill.is-dust{
+    background: linear-gradient(90deg, #c97a3d, #f2b482);
+    box-shadow: 0 0 10px rgba(201,122,61,0.5);
+  }
+  .comp-bar-pct{ width: 34px; flex: none; text-align: right; color: rgba(255,255,255,0.55); font-size: 12px; }
+  .credit-card{
+    text-decoration: none;
+    display: block;
+    transition: background 0.25s ease, transform 0.2s ease;
+  }
+  .credit-card:hover{ background: rgba(255,255,255,0.10); transform: translateY(-2px); }
+  .credit-card .card-value{ display: flex; align-items: center; gap: 8px; }
+  .credit-card .card-value svg{ width: 14px; height: 14px; opacity: 0.6; flex: none; }
+
+  /* Foto da nave — centralizada, logo abaixo dos widgets */
+  .ufo-photo{
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    justify-content: center;
+    margin-top: 22px;
+  }
+  .ufo-photo img{
+    width: 96px;
+    height: auto;
+    display: block;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.92);
+    padding: 10px;
+    box-shadow:
+      0 10px 30px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.20);
+  }
 </style>
 
   <script>
@@ -342,6 +528,86 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
   </div>
 
   <div class="earth-label" id="earthLabel"><span class="ring"></span></div>
+
+  <!-- Botão glass (canto inferior direito) — abre o painel de widgets -->
+  <button type="button" class="glass-btn" id="btnOpenWidgets" aria-label="Ver informações">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 6L15 12L9 18" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- Painel de widgets em glassmorphism, fundo preto -->
+  <div class="widgets-overlay" id="widgetsOverlay">
+    <div class="widgets-inner">
+      <div class="widgets-title" id="widgetsTitle">Via Láctea</div>
+      <div class="widgets-grid">
+
+        <div class="glass-card">
+          <div class="card-label" id="lblAgeUniverse">Idade do Universo</div>
+          <div class="card-value">≈ 13,8 bilhões de anos</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label" id="lblRotation">Rotação da Via Láctea</div>
+          <div class="card-value">230 milhões de anos</div>
+          <div class="card-sub" id="rotationSub">por volta completa</div>
+        </div>
+
+        <div class="glass-card wide">
+          <div class="card-label" id="lblEarthTime">Horário da Terra</div>
+          <div class="card-value" id="widgetClock">00:00:00</div>
+          <div class="card-sub" id="widgetDate">—</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label" id="lblExpansion">Expansão do espaço</div>
+          <div class="card-value">≈ 67 km/s/Mpc</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-label" id="lblComposition">Composição</div>
+          <div class="comp-bar-row">
+            <span class="comp-bar-label">Estrelas</span>
+            <span class="comp-bar-track"><span class="comp-bar-fill is-stars" style="width:91%"></span></span>
+            <span class="comp-bar-pct">91%</span>
+          </div>
+          <div class="comp-bar-row">
+            <span class="comp-bar-label">Gás</span>
+            <span class="comp-bar-track"><span class="comp-bar-fill is-gas" style="width:8%"></span></span>
+            <span class="comp-bar-pct">8%</span>
+          </div>
+          <div class="comp-bar-row">
+            <span class="comp-bar-label">Poeira</span>
+            <span class="comp-bar-track"><span class="comp-bar-fill is-dust" style="width:1%"></span></span>
+            <span class="comp-bar-pct">1%</span>
+          </div>
+        </div>
+
+        <a class="glass-card wide credit-card" id="creditLink" href="https://bralis.site" target="_blank" rel="noopener noreferrer">
+          <div class="card-label" id="lblCredit">Criado por</div>
+          <div class="card-value">
+            Miguel Rodrigues
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 17L17 7M17 7H9M17 7V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="card-sub" id="creditSub">AKA: Bralis</div>
+        </a>
+
+      </div>
+
+      <div class="ufo-photo">
+        <img src="nave.png" alt="Nave" />
+      </div>
+    </div>
+
+    <!-- Botão glass (canto inferior esquerdo) — volta para a visão da galáxia -->
+    <button type="button" class="glass-btn" id="btnCloseWidgets" style="position:fixed;" aria-label="Voltar para a galáxia">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 6L9 12L15 18" stroke="rgba(255,255,255,0.92)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -436,6 +702,11 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
   const siteTitle = document.getElementById('siteTitle');
   const legend = document.getElementById('legend');
   const legendText = document.getElementById('legendText');
+  const btnOpenWidgets = document.getElementById('btnOpenWidgets');
+  const btnCloseWidgets = document.getElementById('btnCloseWidgets');
+  const widgetsOverlay = document.getElementById('widgetsOverlay');
+  const widgetClockEl = document.getElementById('widgetClock');
+  const widgetDateEl = document.getElementById('widgetDate');
 
   /* Aplica os textos traduzidos (definidos no <head>, com base no idioma
      do dispositivo) aos elementos da interface. */
@@ -709,9 +980,30 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     const ss = String(now.getSeconds()).padStart(2, '0');
     clockEl.textContent = `${hh}:${mm}:${ss}`;
     dateEl.textContent = T.dateFormat(now.getDate(), T.months[now.getMonth()], now.getFullYear());
+    if (widgetClockEl) widgetClockEl.textContent = `${hh}:${mm}:${ss}`;
+    if (widgetDateEl) widgetDateEl.textContent = T.dateFormat(now.getDate(), T.months[now.getMonth()], now.getFullYear());
   }
   updateClock();
   setInterval(updateClock, 1000);
+
+  /* ------------------------- Painel de widgets (glass) -------------------------- */
+  let widgetsOpen = false;
+  function openWidgets(){
+    if (widgetsOpen) return;
+    widgetsOpen = true;
+    widgetsOverlay.classList.add('visible');
+    btnCloseWidgets.classList.add('visible');
+    btnOpenWidgets.classList.remove('visible');
+  }
+  function closeWidgets(){
+    if (!widgetsOpen) return;
+    widgetsOpen = false;
+    widgetsOverlay.classList.remove('visible');
+    btnCloseWidgets.classList.remove('visible');
+    if (infoRevealed) btnOpenWidgets.classList.add('visible');
+  }
+  btnOpenWidgets.addEventListener('click', openWidgets);
+  btnCloseWidgets.addEventListener('click', closeWidgets);
 
   /* ------------------------------ Loop principal -------------------------------- */
   const startTime = performance.now();
@@ -764,6 +1056,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
       infoRevealed = true;
       setInfoVisible(true);
       galaxyCanvas.classList.add('interactive');
+      if (!widgetsOpen) btnOpenWidgets.classList.add('visible');
     }
 
     // Rotação extremamente lenta e contínua da galáxia, amarrada ao relógio real
