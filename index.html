@@ -329,7 +329,61 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     overscroll-behavior: none;
   }
   .widgets-overlay.visible{ opacity: 1; pointer-events: auto; }
+
+  /* Chuva de meteoros no fundo do painel — atrás dos cards de vidro */
+  .meteor-field{
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .meteor{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #eef5ff;
+    box-shadow:
+      0 0 6px 1px rgba(180,210,255,0.85),
+      0 0 16px 3px rgba(140,180,255,0.28);
+    opacity: 0;
+    animation-name: meteorFly;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+    animation-fill-mode: both;
+    --tx: -400px;
+    --ty: 300px;
+    --ang: 200deg;
+    --len: 100px;
+  }
+  .meteor::before{
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--len);
+    height: 1px;
+    background: linear-gradient(90deg, rgba(210,230,255,0.85), rgba(210,230,255,0));
+    transform: translateY(-50%) rotate(var(--ang));
+    transform-origin: left center;
+  }
+  @keyframes meteorFly{
+    0%   { transform: translate(0, 0); opacity: 0; }
+    4%   { opacity: 1; }
+    12%  { opacity: 0.92; }
+    58%  { opacity: 0.8; }
+    100% { transform: translate(var(--tx), var(--ty)); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .meteor{ display: none; }
+  }
+
   .widgets-inner{
+    position: relative;
+    z-index: 1;
     min-height: 100%;
     box-sizing: border-box;
     padding: max(70px, env(safe-area-inset-top) + 40px) max(24px, env(safe-area-inset-right) + 10px) 110px max(24px, env(safe-area-inset-left) + 10px);
@@ -546,6 +600,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
 
   <!-- Painel de widgets em glassmorphism, fundo preto -->
   <div class="widgets-overlay" id="widgetsOverlay">
+    <div class="meteor-field" id="meteorField" aria-hidden="true"></div>
     <div class="widgets-inner">
       <div class="widgets-title" id="widgetsTitle">Via Láctea</div>
       <div class="widgets-grid">
@@ -996,6 +1051,71 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
 
   /* ------------------------- Painel de widgets (glass) -------------------------- */
   let widgetsOpen = false;
+
+  /* ------------------------- Chuva de meteoros do painel ------------------------ */
+  const meteorField = document.getElementById('meteorField');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let meteorSpawnTimer = null;
+
+  function spawnMeteor(){
+    if (!meteorField) return;
+    const el = document.createElement('div');
+    el.className = 'meteor';
+
+    const startTop = Math.random() * 40;              // % a partir do topo
+    const startLeft = 25 + Math.random() * 65;         // % a partir da esquerda
+    const tx = -(320 + Math.random() * 420);           // desloca para a esquerda
+    const ty = 190 + Math.random() * 300;              // desloca para baixo
+    const theta = Math.atan2(ty, tx) * 180 / Math.PI;  // direção do movimento
+    const dur = 5 + Math.random() * 4;                 // 5s a 9s — bem mais lento
+    const brightness = 0.5 + Math.random() * 0.5;      // 0.5 (fraco) a 1 (brilhante)
+    const size = (1.3 + brightness * 1.4).toFixed(2);  // meteoros brilhantes = mais "grossos"
+    const len = 60 + brightness * 110;                 // rastro proporcional ao brilho
+
+    el.style.top = startTop + '%';
+    el.style.left = startLeft + '%';
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.boxShadow =
+      `0 0 ${(4 + brightness * 5).toFixed(1)}px 1px rgba(180,210,255,${(0.55 + brightness * 0.4).toFixed(2)}), ` +
+      `0 0 ${(10 + brightness * 12).toFixed(1)}px 3px rgba(140,180,255,${(0.15 + brightness * 0.25).toFixed(2)})`;
+    el.style.setProperty('--tx', tx + 'px');
+    el.style.setProperty('--ty', ty + 'px');
+    el.style.setProperty('--ang', (theta + 180) + 'deg');
+    el.style.setProperty('--len', len + 'px');
+    el.style.animationDuration = dur + 's';
+
+    meteorField.appendChild(el);
+    const cleanup = () => { if (el.parentNode) el.remove(); };
+    el.addEventListener('animationend', cleanup);
+    setTimeout(cleanup, (dur + 0.6) * 1000); // rede de segurança
+  }
+
+  function scheduleNextMeteor(){
+    if (prefersReducedMotion || !meteorField) return;
+    // Intervalo bem irregular entre um meteoro e outro, como no céu real:
+    // às vezes passa um tempo bom sem nenhum, às vezes dois quase juntos.
+    const gap = 3200 + Math.random() * 6800; // 3.2s a 10s
+    meteorSpawnTimer = setTimeout(() => {
+      spawnMeteor();
+      if (Math.random() < 0.12) setTimeout(spawnMeteor, 250 + Math.random() * 500);
+      scheduleNextMeteor();
+    }, gap);
+  }
+
+  function startMeteorShower(){
+    if (prefersReducedMotion || meteorSpawnTimer || !meteorField) return;
+    setTimeout(spawnMeteor, 400 + Math.random() * 800); // primeiro meteoro logo ao abrir
+    scheduleNextMeteor();
+  }
+  function stopMeteorShower(){
+    if (meteorSpawnTimer){
+      clearTimeout(meteorSpawnTimer);
+      meteorSpawnTimer = null;
+    }
+    if (meteorField) meteorField.innerHTML = '';
+  }
+
   function openWidgets(){
     if (widgetsOpen) return;
     widgetsOpen = true;
@@ -1003,6 +1123,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     btnCloseWidgets.classList.add('visible');
     btnOpenWidgets.classList.remove('idle-transition');
     btnOpenWidgets.classList.remove('visible');
+    startMeteorShower();
   }
   function closeWidgets(){
     if (!widgetsOpen) return;
@@ -1011,6 +1132,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     btnCloseWidgets.classList.remove('visible');
     btnOpenWidgets.classList.remove('idle-transition');
     if (infoRevealed && !leftInfoIdle) btnOpenWidgets.classList.add('visible');
+    stopMeteorShower();
   }
   btnOpenWidgets.addEventListener('click', openWidgets);
   btnCloseWidgets.addEventListener('click', closeWidgets);
