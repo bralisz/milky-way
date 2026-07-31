@@ -550,7 +550,23 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
   galaxyGroup.add(earthMarker);
 
   /* --------------------------- Campo de estrelas de fundo (fixas) --------------------------- */
-  function buildBackground(n, rMin, rMax, size, opacity, briMin, briMax){
+  // Distribuição de cor aproximada por "temperatura": a maioria das estrelas
+  // visíveis a olho nu aparece branca/azulada, uma parcela menor é amarelada
+  // (como o Sol) e uma parcela ainda menor é alaranjada/avermelhada.
+  function starTemperatureColor(b){
+    const r = Math.random();
+    if (r < 0.72){        // branco-azulado (maioria)
+      return [b, b, clamp(b + 0.05, 0, 1)];
+    } else if (r < 0.90){ // amarelado
+      return [b, b * 0.93, b * 0.72];
+    } else {               // alaranjado/avermelhado
+      return [b, b * 0.72, b * 0.5];
+    }
+  }
+  // flatten (0–1) achata levemente a distribuição em direção ao plano
+  // galáctico, aproximando o efeito real da "faixa" da Via Láctea no céu,
+  // onde a densidade de estrelas visíveis é maior perto do plano.
+  function buildBackground(n, rMin, rMax, size, opacity, briMin, briMax, flatten = 0){
     const pos = new Float32Array(n * 3);
     const col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++){
@@ -558,10 +574,11 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
       const theta = Math.random() * TAU;
       const phi = Math.acos(2 * Math.random() - 1);
       pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
-      pos[i*3+1] = r * Math.cos(phi);
+      pos[i*3+1] = r * Math.cos(phi) * (1 - flatten);
       pos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
       const b = lerp(briMin, briMax, Math.random());
-      col[i*3] = b; col[i*3+1] = b; col[i*3+2] = clamp(b + 0.05, 0, 1);
+      const c = starTemperatureColor(b);
+      col[i*3] = c[0]; col[i*3+1] = c[1]; col[i*3+2] = c[2];
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -572,12 +589,16 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     });
     return new THREE.Points(geo, mat);
   }
-  // Camada principal, bem mais densa que antes
-  scene.add(buildBackground(4600, 900, 2400, 1.6, 0.8, 0.35, 0.95));
+  // Camada principal — densidade moderada, levemente concentrada perto do
+  // plano galáctico (como a faixa da Via Láctea no céu real)
+  scene.add(buildBackground(5800, 900, 2400, 1.5, 0.75, 0.32, 0.9, 0.30));
   // Camada distante, estrelas menores e mais numerosas (profundidade)
-  scene.add(buildBackground(2200, 1500, 3300, 1.05, 0.55, 0.2, 0.6));
+  scene.add(buildBackground(3200, 1500, 3300, 1.0, 0.5, 0.18, 0.55, 0.15));
+  // Camada mais distante e mais numerosa, estrelas minúsculas e mais fracas —
+  // fundo esparso, sem competir visualmente com a galáxia modelada
+  scene.add(buildBackground(2600, 3000, 5200, 0.7, 0.35, 0.1, 0.35, 0));
   // Estrelas fixas maiores, em primeiro plano — pontos firmes, sem cintilar
-  scene.add(buildBackground(280, 480, 950, 2.7, 0.95, 0.65, 1.0));
+  scene.add(buildBackground(340, 480, 950, 2.6, 0.9, 0.6, 1.0, 0));
 
   /* --------------------------- Estrelas explodindo (supernovas) --------------------------- */
   const MAX_BURSTS = 5;
