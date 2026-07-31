@@ -216,6 +216,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     .site-title{ transition: opacity 0.4s ease; }
     .legend{ transition: opacity 0.4s ease; }
     .earth-label{ transition: opacity 0.4s ease; }
+    #btnOpenWidgets.idle-transition{ transition: opacity 0.4s ease; }
   }
 
   @media (max-width: 560px){
@@ -309,6 +310,9 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
   #btnOpenWidgets svg{ width: 11px; height: 11px; }
   #btnOpenWidgets.visible{ opacity: 0.45; }
   #btnOpenWidgets.visible:hover{ opacity: 1; background: rgba(255,255,255,0.10); transform: scale(1.06); }
+  /* Usada quando a seta some/aparece junto com as infos do canto esquerdo
+     (título + legenda) por inatividade, para que o fade fique sincronizado. */
+  #btnOpenWidgets.idle-transition{ transition: opacity 2.8s ease, transform 0.25s ease, background 0.25s ease; }
   #btnCloseWidgets{ left: max(26px, env(safe-area-inset-left)); }
 
   /* Painel de widgets — fundo totalmente preto com cards em glassmorphism */
@@ -437,19 +441,22 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     max-width: 760px;
     display: flex;
     justify-content: center;
-    margin-top: 22px;
+    margin-top: 16px;
   }
   .ufo-photo img{
-    width: 96px;
+    width: 64px;
     height: auto;
     display: block;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.92);
-    padding: 10px;
-    box-shadow:
-      0 10px 30px rgba(0,0,0,0.45),
-      inset 0 1px 0 rgba(255,255,255,0.5);
-    border: 1px solid rgba(255,255,255,0.20);
+    background: transparent;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.5));
+  }
+  @media (max-width: 560px){
+    .ufo-photo{ margin-top: 12px; }
+    .ufo-photo img{ width: 52px; }
+  }
+  @media (max-height: 430px) and (orientation: landscape){
+    .ufo-photo{ margin-top: 8px; }
+    .ufo-photo img{ width: 44px; }
   }
 </style>
 
@@ -993,6 +1000,7 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     widgetsOpen = true;
     widgetsOverlay.classList.add('visible');
     btnCloseWidgets.classList.add('visible');
+    btnOpenWidgets.classList.remove('idle-transition');
     btnOpenWidgets.classList.remove('visible');
   }
   function closeWidgets(){
@@ -1000,7 +1008,8 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     widgetsOpen = false;
     widgetsOverlay.classList.remove('visible');
     btnCloseWidgets.classList.remove('visible');
-    if (infoRevealed) btnOpenWidgets.classList.add('visible');
+    btnOpenWidgets.classList.remove('idle-transition');
+    if (infoRevealed && !leftInfoIdle) btnOpenWidgets.classList.add('visible');
   }
   btnOpenWidgets.addEventListener('click', openWidgets);
   btnCloseWidgets.addEventListener('click', closeWidgets);
@@ -1027,6 +1036,15 @@ html.cursor-hidden #galaxy-canvas.interactive:active {
     const show = infoVisible && !leftInfoIdle;
     siteTitle.classList.toggle('visible', show);
     legend.classList.toggle('visible', show);
+
+    // A seta ">" (botão de abrir os widgets) some/aparece junto com as
+    // infos do canto esquerdo quando é por inatividade — mas só enquanto
+    // o painel de widgets estiver fechado, pra não interferir na lógica
+    // própria de abrir/fechar o painel.
+    if (infoRevealed && !widgetsOpen){
+      btnOpenWidgets.classList.add('idle-transition');
+      btnOpenWidgets.classList.toggle('visible', !leftInfoIdle);
+    }
   }
 
   function registerActivity(){
